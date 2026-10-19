@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Generate 3 random lowercase words (6 letters each)
+word1=ljsswr
+word2=pzocuv
+word3=qrrjoj
+
+echo "Generated words:"
+echo "me     -> $word1"
+echo "weishu  -> $word2"
+echo "kernelsu -> $word3"
+echo ""
+
+# Export variables for use in find -exec
+export word1 word2 word3
+
+# Rename directories
+find . -depth -type d -name 'me' -execdir mv {} "$word1" \;
+find . -depth -type d -name 'weishu' -execdir mv {} "$word2" \;
+find . -depth -type d -name 'kernelsu' -execdir mv {} "$word3" \;
+
+# Replace inside files
+find . -type f -exec sed -i \
+    -e "s/me\.weishu\.kernelsu/$word1.$word2.$word3/g" \
+    -e "s/me\/weishu\/kernelsu/$word1\/$word2\/$word3/g" \
+    -e "s/me_weishu_kernelsu/${word1}_${word2}_${word3}/g" {} +
+
+# Append '-spoofed' to managerVersionName in build.gradle.kts
+if [ -f "./build.gradle.kts" ]; then
+    sed -i 's/extra\["managerVersionName"\] = getVersionName()/extra["managerVersionName"] = getVersionName()\nextra["managerVersionNameSpoofed"] = "${getVersionName()}-spoofed"/' ./build.gradle.kts
+fi
+
+if [ -f "./app/build.gradle.kts" ]; then
+    sed -i '/val managerVersionName = rootProject\.extra\["managerVersionName"\] as String/a val managerVersionNameSpoofed = rootProject.extra["managerVersionNameSpoofed"] as String' ./app/build.gradle.kts
+    sed -i 's/\(versionName = \)managerVersionName/\1managerVersionNameSpoofed/' ./app/build.gradle.kts
+    sed -i 's/_\${managerVersionName}_/_\${managerVersionNameSpoofed}_/' ./app/build.gradle.kts
+fi
+
+echo "Done."
